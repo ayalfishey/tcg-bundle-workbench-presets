@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- TCG Card Shop Simulator is Unity 2022 Mono; netstandard2.1 matches the runtime -->
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>TCGWorkbenchPresets</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <!-- CS0436: duplicate types from multiple game DLLs; MSB3277: expected — multiple UnityEngine modules share the same assembly version -->
+    <NoWarn>$(NoWarn);CS0436;MSB3277</NoWarn>
+
+    <!-- ===== EDIT THIS to your install path ===== -->
+    <GameDir Condition="'$(GameDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\TCG Card Shop Simulator</GameDir>
+    <ManagedDir>$(GameDir)\Card Shop Simulator_Data\Managed</ManagedDir>
+  </PropertyGroup>
+
+  <!-- Only BepInEx itself comes from NuGet now (from the BepInEx feed in nuget.config) -->
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Core" Version="5.*" />
+  </ItemGroup>
+
+  <!-- Everything else is referenced straight out of the game's Managed folder.
+       The UnityEngine*.dll glob grabs CoreModule, UIModule, InputLegacyModule, etc.
+       Private=false means none of these get copied into your build output. -->
+  <ItemGroup>
+    <Reference Include="$(ManagedDir)\UnityEngine*.dll">
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(ManagedDir)\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>$(ManagedDir)\Unity.TextMeshPro.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>
