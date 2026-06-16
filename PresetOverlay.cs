@@ -152,16 +152,19 @@ namespace TCGWorkbenchPresets
 
         private void CreateButton(Transform parent, PresetDefinition preset, WorkbenchConnector connector)
         {
-            var go  = new GameObject(preset.Label);
+            var go = new GameObject(preset.Label);
+            var c  = preset.TierColor;
+
+            // Layer 1 (outermost): dark shade of the tier color — visible as the border ring.
             var img = go.AddComponent<Image>();
             img.sprite = _buttonSprite;
             img.type   = Image.Type.Sliced;
-            img.color  = preset.TierColor;
+            img.color  = new Color(c.r * 0.40f, c.g * 0.40f, c.b * 0.40f);
             go.transform.SetParent(parent, false);
 
-            // Dark border around each button.
+            // Black outer shadow on top of the dark ring.
             var outline = go.AddComponent<Outline>();
-            outline.effectColor    = new Color(0f, 0f, 0f, 0.75f);
+            outline.effectColor    = new Color(0f, 0f, 0f, 0.85f);
             outline.effectDistance = new Vector2(1.5f, -1.5f);
 
             var le = go.AddComponent<LayoutElement>();
@@ -172,12 +175,28 @@ namespace TCGWorkbenchPresets
             btn.targetGraphic = img;
             var cols = btn.colors;
             cols.normalColor      = Color.white;
-            cols.highlightedColor = new Color(0.85f, 0.85f, 0.85f, 1f);
-            cols.pressedColor     = new Color(0.65f, 0.65f, 0.65f, 1f);
+            cols.highlightedColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            cols.pressedColor     = new Color(0.7f, 0.7f, 0.7f, 1f);
             cols.colorMultiplier  = 1f;
             btn.colors = cols;
             btn.onClick.AddListener(() => connector.ApplyPreset(preset.Min.Value, preset.Max.Value));
 
+            // Layer 2 (Lightest): anchored from 25% up — dark ring is thick at bottom, 4 px at top/sides.
+            AddBox(go.transform, "Lightest", Lighten(c, 1.50f, 0.20f),
+                anchorMin: new Vector2(0f, 0.05f), anchorMax: Vector2.one,
+                offsetMin: new Vector2(4f, 0f), offsetMax: new Vector2(-4f, -1f));
+
+            // Layer 3 (Light): same x as Lightest so it overlaps horizontally; sits higher on Y.
+            AddBox(go.transform, "Light", Lighten(c, 1.02f, 0.01f),
+                anchorMin: new Vector2(0f, 0.05f), anchorMax: Vector2.one,
+                offsetMin: new Vector2(4f, 0f), offsetMax: new Vector2(-4f, -3f));
+
+            // Layer 4 (Color): anchored from 35% up — Light shows as 3 px ring on sides/top.
+            AddBox(go.transform, "Color", c,
+                anchorMin: new Vector2(0f, 0.15f), anchorMax: Vector2.one,
+                offsetMin: new Vector2(7f, 0f), offsetMax: new Vector2(-7f, -5f));
+
+            // Text on top of all layers.
             var textGO = new GameObject("Label");
             var tmp    = textGO.AddComponent<TextMeshProUGUI>();
             textGO.transform.SetParent(go.transform, false);
@@ -185,7 +204,7 @@ namespace TCGWorkbenchPresets
             tmp.fontStyle    = FontStyles.Bold;
             tmp.fontSize     = 15f;
             tmp.color        = Color.white;
-            tmp.outlineWidth = 0.25f;      // thick stroke like the game's own buttons
+            tmp.outlineWidth = 0.35f;
             tmp.outlineColor = Color.black;
             tmp.alignment    = TextAlignmentOptions.Center;
             if (_gameFont != null) tmp.font = _gameFont;
@@ -195,6 +214,28 @@ namespace TCGWorkbenchPresets
             tr.offsetMin = Vector2.zero;
             tr.offsetMax = Vector2.zero;
         }
+
+        private void AddBox(Transform parent, string name, Color color,
+            Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)
+        {
+            var go  = new GameObject(name);
+            var img = go.AddComponent<Image>();
+            img.sprite        = _buttonSprite;
+            img.type          = Image.Type.Sliced;
+            img.color         = color;
+            img.raycastTarget = false;
+            go.transform.SetParent(parent, false);
+            var r = go.GetComponent<RectTransform>();
+            r.anchorMin = anchorMin;
+            r.anchorMax = anchorMax;
+            r.offsetMin = offsetMin;
+            r.offsetMax = offsetMax;
+        }
+
+        private static Color Lighten(Color c, float mul, float add) =>
+            new Color(Mathf.Clamp01(c.r * mul + add),
+                      Mathf.Clamp01(c.g * mul + add),
+                      Mathf.Clamp01(c.b * mul + add));
 
         // Tries to load button_bg.png from the same folder as the DLL.
         // If the file is absent, falls back to a programmatically generated rounded rect.
